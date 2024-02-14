@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="bootstrap-4.5.2-dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js"></script>
+    <script src="bootstrap-4.5.2-dist/js/jquery-slim.min.js"></script>
+    <script src="bootstrap-4.5.2-dist/js/bootstrap.min.js"></script>
+    <link href="pagina_corso_style.css" rel="stylesheet">
+
+</head>
+<body>
+<div id="app">
+    <title>{{ corso.nome }}</title>
+    <header>
+        <nav class="navbar navbar-expand-md navbar-dark bg-dark mb-4">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">TeachMeNow</a>
+                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarCollapse">
+                    <ul class="navbar-nav me-auto mb-2 mb-md-0">
+                        <li class="nav-item">
+                            <a class="nav-link" aria-current="page" href="homepage.html">Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="prenotazioni_user.html" tabindex="-1" aria-disabled="true">Le tue prenotazioni</a>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="dropdown03" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></a>
+                            <div class="dropdown-menu" aria-labelledby="dropdown03">
+                                <a class="dropdown-item" href="#">Profilo</a>
+                                <a class="dropdown-item" v-on:click="getLogout" type="submit">Logout</a>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+    <main role="main">
+        <p style="color: dodgerblue">Sessione: {{ sessione }}</p>
+        <p v-if="sessione == null" style="color: red" class="text-center mb-4 font-weight-bold">Non hai effettuato il login</p>
+        <h1 style="color: white">{{ corso.nome }}</h1>
+        <p style="color: white">{{ corso.descrizione }}</p>
+        <div class="album py-5 bg-#777">
+            <div class="container bg-#777">
+                <div class="row">
+                    <div class="col-md-4" v-for="docenti in professori" :key="docenti.id">
+                        <div class="card mb-4 shadow-sm" @click="selezionaProfessore(docenti.id)">
+                            <svg class="bd-placeholder-img card-img-top" width="100%" height="225" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" focusable="false" role="img" aria-label="Placeholder: Thumbnail">
+                                <title>{{ docenti.nome }} {{ docenti.cognome }}</title>
+                                <rect width="100%" height="100%" fill="#55595c"/>
+                                <text x="50%" y="50%" fill="#eceeef" dy=".3em" text-anchor="middle" dominant-baseline="middle">{{ docenti.nome }} {{ docenti.cognome }}</text>
+                            </svg>
+                            <div class="card-body">
+                                <input type="hidden" v-model="docenti.id" />
+                                <p class="card-text" style="min-height: 80px">
+                                    Gli slot che si possono scegliere sono 4:<br>
+                                    slot 1: 15-16;<br>
+                                    slot 2: 16-17;<br>
+                                    slot 3: 17-18;<br>
+                                    slot 4: 18-19;<br>
+                                </p>
+                                <!--<p class="card-text" style="min-height: 80px">{{ docenti.descrizione.length > 100 ? docenti.descrizione.slice(0, 100) + '...' : docenti.descrizione }}</p>-->
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <p>Seleziona il giorno</p>
+                                            <select class="custom-select" v-on:change="getOrari" v-model="selectedGiorni[docenti.id]" :id="'giorno_' + docenti.id">
+                                                <option selected value="Nessun giorno">Nessun giorno</option>
+                                                <option value="1">Lunedì</option>
+                                                <option value="2">Martedì</option>
+                                                <option value="3">Mercoledì</option>
+                                                <option value="4">Giovedì</option>
+                                                <option value="5">Venerdì</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <p>Seleziona l'orario</p>
+                                            <select class="custom-select" @change="checkParametri" v-model="selectedOrari[docenti.id]" :id="'orario_' + docenti.id">
+                                                <option selected value="Nessun orario">Nessun orario</option>
+                                                <option v-for="orari in orario" :key="orari">{{orari}}</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <br><div class="btn-group">
+                                                <a class="btn btn-sm btn-outline-primary">Prenota</a>
+                                            </div></br>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    var app = new Vue({
+        el: '#app',
+        data: {
+            corso: {
+                nome: '',
+                descrizione: '',
+                id: ''
+            },
+            professori: [],
+            orario: [],
+            account: '',
+            sessione: localStorage.getItem('sessione'),
+            selectedProfessore: 'Nessun professore',
+            selectedCorso: 'Nessun corso',
+            selectedGiorni: new Map(),
+            selectedOrari: new Map(),
+            link_corsi: '/Servlet_war_exploded/corso/api',
+            link_docente: '/Servlet_war_exploded/docente/api',
+            link_orari: '/Servlet_war_exploded/orari/api',
+            link_prenotazioni: '/Servlet_war_exploded/prenotazione/api',
+        },
+        mounted() {
+            var urlParams = new URLSearchParams(window.location.search);
+            this.corso.nome = urlParams.get('nome');
+            this.corso.descrizione = urlParams.get('descrizione');
+            this.corso.id = urlParams.get('id');
+            this.getDocenti();
+        },
+
+        methods: {
+            getLogout: function () {
+                $.post(this.link_login, { action: 'logout' }, function () {
+                    window.location.replace("login.html");
+                });
+            },
+
+            getDocenti() {
+                var self = this;
+                $.post(this.link_docente, { corso: this.corso.id },
+                    function (data) {
+                        self.professori = data["docenti"];
+                    }
+                );
+            },
+
+            getOrari() {
+                var self = this;
+                var professoreId = this.selectedProfessore;
+                var giorno = this.selectedGiorni[professoreId];
+
+                // Recupera gli orari dalla mappa usando la chiave professoreId
+                var orariSelezionati = this.selectedOrari[professoreId];
+
+                // Effettua la richiesta al server con gli orariSelezionati
+                $.post(this.link_orari, { docente: professoreId, giorno: giorno, orari: orariSelezionati },
+                    function (data) {
+                        self.orario = data["orari"];
+                    }
+                );
+            },
+
+            selezionaProfessore(professoreId) {
+                // Assegna l'id del professore a selectedProfessore
+                this.selectedProfessore = professoreId;
+
+                // Puoi anche fare altre operazioni qui se necessario
+            },
+
+            checkParametri() {
+                var professoreId = this.selectedProfessore;
+                console.log(this.selectedProfessore);
+                console.log(this.selectedGiorni[professoreId]);
+                console.log(this.selectedOrari[professoreId])
+            }
+        }
+    });
+</script>
+</body>
+</html>

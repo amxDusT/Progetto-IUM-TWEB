@@ -1,0 +1,176 @@
+login/api/
+/**
+*   Can login and check login
+*   @param username     username
+*   @param password     password
+*   @param remember     if 1 = remember, 0 only 30min inactivity
+*   @param action       'login' or null = login
+*                       'logout'  = logout
+*
+*   @return  Utente object (without password): name, ID, ruolo
+*
+*   @error if response statusCode is != 200 => error:
+*           ErrorCodes.ERROR_LOGIN_USER_VALIDATION : if user not validated (doesn't have required characters, etc)
+*           ErrorCodes.ERROR_LOGIN_PASSWORD_VALIDATION: password not validated
+*           ErrorCodes.ERROR_LOGIN_WRONG_CREDENTIALS: username or password wrong
+*/
+
+corso/api
+/**
+*   get corsi. "?" elements are optional.
+*
+*   @param corso            corso ID. 'all' for all corsi (funge solo con 'all' per ora)
+*   @param order-by?         corso column to order by the elements (EG: 'nome' se vuoi in ordine alfabetico)
+*                           by default is 'id'.
+*   @param order-type?       'asc' or 'desc'. by default is 'desc'. (EG: per ordine alfabetico, 'asc')
+*   @param search-column?    the corso column to search (EG: 'nome' se vuoi cercare cose col nome)
+*   @param start-at?         search from the start (EG: se cerchi nome che inizia con "ram" ti esce il corso "ramiro")
+*   @param end-at?           search from the end (EG: se cerchi "iro" ti esce il corso "ramiro")
+*
+*   @note   O metti start-at O end-at, di default, se metti entrambe, start-at ha la priorita.
+*   @note   se metti 'order-by', serve anche 'order-type'. se metti 'search-column' serve anche 'start-at' O 'end-at'
+*
+*   @return lista dei corsi: ogni corso ha 'id', 'nome','descrizione' e 'docentiNum'(numero di docenti che insegnano quel corso)
+*   @error      ErrorCodes.ERROR_LOGIN_NOT_LOGGED: se l'utente non è loggato
+*               ErrorCodes.ERROR_CORSO_ERROR : se metti un order-by o search-column che non sia una column della tabella corsi
+*
+*/
+
+
+docente/api
+/**
+* if corso: list of docenti ATTIVI for a certain corso
+*
+*
+*   @param corso    ID corso
+*   @param docente  ID docente
+*
+*   @return  list of docenti ATTIVI: ogni docente ha 'id', 'nome', 'cognome'
+*
+*   @error ErrorCodes.ERROR_LOGIN_NOT_LOGGED: se l'utente non è loggato
+*/
+
+orario/api
+/**
+* get list of hours that a certain docente is busy
+*
+*   @param docente  ID docente
+*   @param giorno   Giorno num (1-5)
+*
+*   @return list of orari : orario è un int da 1-4, per la fascia oraria. (1: 15-16, 2: 16-17, etc)
+*
+*   @error  ErrorCodes.ERROR_LOGIN_NOT_LOGGED: se l'utente non è loggato
+*           ErrorCodes.ERROR_DAY_ERROR: se il giorno che è stato dato non è valido
+*           ErrorCodes.ERROR_DOCENTE_ERROR: se il docente non è valido
+*
+*/
+
+prenotazione/api
+/**
+*   Handle prenotazioni: add, get, update
+*   ADD: needed corso, docente, orario,giorno,action=='add' or null.
+*   GET: needed action=='get'
+*   UPDATE: needed id, stato, action=='update' (updates only stato to new one)
+*
+*   @param corso      ONLY NEEDED FOR ADD ACTION. corso that the prenotazione is for.
+*   @param docente    ONLY NEEDED FOR ADD ACTION. docente that the prenotazioni is for.
+*   @param orario     ONLY NEEDED FOR ADD ACTION. orario that the prenotazione is set for.
+*   @param giorno     ONLY NEEDED FOR ADD ACTION. giorno that the prenotazione is set for.
+*   @param stato      ONLY NEEDED FOR UPDATE ACTION. new stato for the prenotazione. (2:completed, 3: deleted)
+*   @param action     'add', 'get','update'
+*   @param id         ONLY NEEDED FOR UPDATE ACTION. id of the prenotazione to be changed.
+*
+*   @error  ErrorCodes.ERROR_LOGIN_NOT_LOGGED: se l'utente non è loggato
+*           // ADD
+*           ErrorCodes.ERROR_DAY_ERROR: bad day provided
+*           ErrorCodes.ERROR_HOUR_ERROR: bad hour provided
+*           ErrorCodes.ERROR_DOCENTE_ERROR: bad docente provided
+*           ErrorCodes.ERROR_CORSO_ERROR: bad corso provided
+*           ErrorCodes.ERROR_CORSO_ACTIVE: utente already has a prenotazione for that corso.
+*           ErrorCodes.ERROR_ORARIO_ACTIVE: utente already has a prenotazine on that hour of that day.
+*           ErrorCodes.ERROR_DOCENTE_ACTIVE: docente already has a prenotazione on that hour of that day.
+*           ErrorCodes.ERROR_UNKNOWN: something went wrong
+*           // UPDATE
+*           ErrorCodes.ERROR_PRENOTAZIONE_ERROR: bad prenotazione ID provided
+*           ErrorCodes.ERROR_STATO_ERROR: bad stato provided
+*           ErrorCodes.ERROR_UNKNOWN: something went wrong.
+*
+*/
+
+
+admin/corso/api
+/**
+* CRUD (Create, Read, Update, Delete) corsi
+*   CRUD params:
+* Create: nome, descrizione
+* Update: corso, nome?, descrizione?, active?
+* Read: corso?, active? (corso == null => tutti i corsi. active == null => come se fosse active = 1)
+*                        (active = 1 : corsi attivi. active = 0, corsi non attivi / rimossi)
+* Delete: corso (è come fare update con active = 0 alla fine)
+*
+* @param action     action (create, read, update, delete)
+* @return
+*        CREATE: List of single Corso element, just created
+*        UPDATE, DELETE: nothing (just "OK")
+*        READ: List of corsi (if corso param is a number, list of single corso.)
+*/
+
+admin/docente/api
+/**
+* CRUD docenti
+* params CRUD:
+* Create: nome, cognome
+* Update: docente, nome?, cognome?, active?
+* Read: docente?, active?
+* Delete: docente
+*
+*  @param action    (create, read, update, delete)
+*  @return
+*        CREATE: List of single Docente element, just created
+*        UPDATE, DELETE: nothing (just "OK")
+*        READ: List of docenti (if docente param is a number, list of single docente.)
+*/
+
+admin/corsodocente/api
+/**
+*   Get docenti from corso
+*   action params:
+*   get: from corso param, get all docenti
+*   set: corso, docente params => adds insegnamento (same as docentecorso)
+*   delete: corso, docente params => removes insegnamento (same as docentecorso)
+*
+*   @param action   get/set/delete
+*   @return
+*           GET: list of docenti of that corso
+*           SET,DELETE: nothing (just "OK")
+*/
+
+admin/docentecorso/api
+/**
+*   Get corsi from docente
+*   action params:
+*   get: from docente param, get all corsi
+*   set: corso, docente params => adds insegnamento (same as corsodocente)
+*   delete: corso, docente params => removes insegnamento (same as corsodocente)
+*
+*   @param action   get/set/delete
+*   @return
+*           GET: list of corsi of that docente
+*           SET,DELETE: nothing (just "OK")
+*/
+
+admin/prenotazione/api
+/**
+*   Get all prenotazioni (either active or not) with corso, docente, utente details.
+*
+*   @param  active  0 or 1 (if null => 1)
+*
+*   for cancelling a prenotazione:
+*   @param cancel               1 to delete (0/null does nothing)
+*   @param prenotazione         if cancel = 1, must exist.
+*
+*   @return
+*       if cancel => nothing (just "OK")
+*       list of prenotazioni with corso info, docente info, utente info.
+*/
+

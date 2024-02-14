@@ -1,0 +1,66 @@
++ login utente password
++ onLogin => HomePage
++ simple Bottom navbar
++ sample HomePage
++ sample Profile page
++ logout
+
++ remember username onLogOut
++ add tiles for each Corso
++ created BookingMethods
+
++ remember me
++ course page
++ booking page
++ calendar on booking page
++ book lessons
++ show how many Docente for each Corso (with colors)
++ OnClick => open Corso Page
++ search by corso
++ search onClick => CorsoPage
++ Change theme?
++ Change Language??
++ my booking list
+
+GENERAL
+- Docente page(?)
+- better design
+- animations
+- if error in login => login page
+
+
+LOGIN
+- make password be able to be seen when written 
+
+HOMEPAGE
+- if booked, different color (?)
+
+
+SEARCHPAGE
+- filter 
+- search by docente? 
+
+
+PROFILE PAGE
+- Foto user?
+- Fake change username,address, etc
+- Fake help page
+
+MY BOOKING LIST PAGE
++ desc order
++ keep old booked
++ select which booking done
++ cancel a booking 
+- review?
+
+
+https://docs.google.com/document/d/1mmYhPG4vjb1TU7clcIGrPm_9pHvX5SfLTxCrxBBhhc4/edit
+- MVC
+- sessioni utente
+- database.
+- controllo lato client e server 
+- Visualizzare il catalogo delle ripetizioni disponibili, specificando i docenti disponibili per ogni ripetizione prenotabile
+- Prenotare una o più ripetizioni, tra quelle disponibili, scegliendo il corso e il docente desiderato
+- Disdire una prenotazione specifica
+- Segnare una ripetizione come effettuata
+- Visualizzare la propria lista delle prenotazioni

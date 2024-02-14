@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="bootstrap-4.5.2-dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js"></script>
+    <script src="bootstrap-4.5.2-dist/js/jquery-slim.min.js"></script>
+    <script src="bootstrap-4.5.2-dist/js/bootstrap.min.js"></script>
+    <style>
+        .bd-placeholder-img {
+            font-size: 1.125rem;
+            text-anchor: middle;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        @media (min-width: 768px) {
+            .bd-placeholder-img-lg {
+                font-size: 3.5rem;
+            }
+        }
+    </style>
+    <!-- Custom styles for this template -->
+    <link href="homepage_style.css" rel="stylesheet">
+    <title>Homepage</title>
+</head>
+<body>
+<div id="app">
+
+    <header>
+        <nav class="navbar navbar-expand-md navbar-dark bg-dark mb-4">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">TeachMeNow</a>
+                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarCollapse">
+                    <ul class="navbar-nav me-auto mb-2 mb-md-0">
+                        <li class="nav-item">
+                            <a class="nav-link" aria-current="page" href="homepage.html">Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="prenotazioni_user.html" tabindex="-1" aria-disabled="true">Le tue prenotazioni</a>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="dropdown03" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></a>
+                            <div class="dropdown-menu" aria-labelledby="dropdown03">
+                                <a class="dropdown-item" href="#">Profilo</a>
+                                <a class="dropdown-item" v-on:click="getLogout" type="submit">Logout</a>
+                            </div>
+                        </li>
+                    </ul>
+                    <form class="d-flex" role="search">
+                        <input class="form-control mr-sm-2" type="search" placeholder="Cerca" aria-label="Search">
+                        <button class="btn btn-outline-primary my-2 my-sm-0" type="submit">Cerca</button>
+                    </form>
+                </div>
+            </div>
+        </nav>
+    </header>
+    <main role="main">
+        <p style="color: dodgerblue">Sessione: {{sessione}}</p>
+        <p v-if="sessione == null" style="color: red" class="text-center mb-4 font-weight-bold">Non hai effettuato il login</p>
+        <div class="album py-5 bg-#777">
+            <div class="container bg-#777">
+                <div class="row">
+                    <div class="col-md-4" v-for="corso in corsi" :key="corso.id">
+                        <div class="card mb-4 shadow-sm">
+                            <svg class="bd-placeholder-img card-img-top" width="100%" height="225" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" focusable="false" role="img" aria-label="Placeholder: Thumbnail">
+                                <title>{{ corso.nome }}</title>
+                                <rect width="100%" height="100%" fill="#55595c"/>
+                                <text x="50%" y="50%" fill="#eceeef" dy=".3em">{{ corso.nome }}</text>
+                            </svg>
+                            <div class="card-body">
+                                <p class="card-text" style="min-height: 80px">{{ corso.descrizione.length > 100 ? corso.descrizione.slice(0, 100) + '...' : corso.descrizione }}</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="btn-group">
+                                        <a v-bind:class="{ 'btn-secondary': corso.docentiNum === 0, 'btn-outline-primary': corso.docentiNum > 0 }"
+                                           v-bind:disabled="corso.docentiNum === 0"
+                                           v-on:click="prenotaCorso(corso)"
+                                           class="btn btn-sm">Prenota
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+<script>
+    var app = new Vue({
+        el: '#app',
+        data: {
+            corsi: [],
+            account: '',
+            sessione: localStorage.getItem('sessione'),
+            link_corsi: '/Servlet_war_exploded/corso/api',
+            link_login: '/Servlet_war_exploded/login/api',
+        },
+
+        mounted(){ this.getCorsi() },
+
+        methods: {
+            getLogout: function () {
+                $.post(this.link_login, {action: 'logout' }, window.location.replace("login.html"),
+                );
+            },
+
+            prenotaCorso: function(corso) {
+                if (corso.docentiNum > 0) {
+                    // Genera l'URL della pagina di destinazione includendo il nome, la descrizione e l'ID del corso
+                    var url = 'pagina_corso.html?nome=' + encodeURIComponent(corso.nome) +
+                        '&descrizione=' + encodeURIComponent(corso.descrizione) +
+                        '&id=' + encodeURIComponent(corso.id);
+                    // Reindirizza a un'altra pagina
+                    window.location.href = url;
+                }
+            },
+
+            getCorsi: function () {
+                var self = this;
+                $.post(this.link_corsi, {corso: "all"},
+                    function (data){
+                        self.corsi = data["corsi"];
+                    }
+                );
+            },
+        }
+    });
+</script>
+</body>
+</html>

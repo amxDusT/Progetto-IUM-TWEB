@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Title</title>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+</head>
+<body>
+<form method="get">
+  <input id="button" name="submit" type="button" value="Chiedi" />
+</form>
+<div id="ordine">4</div>
+<div id="lista"></div>
+<script>
+  $("#button").on("click", function() {
+    $.get("Ordini", {ordine: $("#ordine").text()}, function(data){
+      $("#lista").html(data);
+    });
+  });
+</script>
+</body>
+</html>

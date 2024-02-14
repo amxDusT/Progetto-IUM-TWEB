@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="bootstrap-4.5.2-dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js"></script>
+    <script src="bootstrap-4.5.2-dist/js/jquery-slim.min.js"></script>
+    <script src="bootstrap-4.5.2-dist/js/bootstrap.min.js"></script>
+    <link href="spa.css" rel="stylesheet">
+    <title>TeachMeNow</title>
+</head>
+<body>
+<div id="app">
+    <header v-if="ruolo !== ''">
+        <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark mb-4">
+            <div class="container-fluid">
+                <a class="navbar-brand" v-on:click="cambiaPagina('homepage')">TeachMeNow</a>
+                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarCollapse"
+                        aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarCollapse">
+                    <ul class="navbar-nav me-auto mb-2 mb-md-0">
+                        <li class="nav-item">
+                            <a v-on:click="cambiaPagina('homepage')" class="nav-link"
+                               aria-current="page">Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a v-on:click="ruolo !== 'GUEST' ? cambiaPrenotazioni() : null" tabindex="-1"
+                               aria-disabled="true" class="nav-link" >
+                                {{ ruolo === 'ADMIN' ? 'Prenotazioni' : 'Le tue prenotazioni' }}</a>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="dropdown03" data-toggle="dropdown"
+                               aria-haspopup="true" aria-expanded="false">{{account.username}}</a>
+                            <div class="dropdown-menu" aria-labelledby="dropdown03">
+                                <a class="dropdown-item" >Profilo</a>
+                                <a v-if="ruolo === 'ADMIN'" class="dropdown-item"  v-on:click="cambiaPagina('admincorso')">Aggiungi/Rimuovi Corso</a>
+                                <a v-if="ruolo === 'ADMIN'" class="dropdown-item" v-on:click="cambiaPagina('admindocente')">Aggiungi/Rimuovi Docente</a>
+                                <a class="dropdown-item" v-on:click="getLogout" type="submit">Logout</a>
+                            </div>
+                        </li>
+                    </ul>
+                    <form class="form-inline mt-2 mt-md-0" v-if="operazionePagina === 'homepage'">
+                        <input class="form-control mr-sm-2" type="text" placeholder="Search" aria-label="Search" v-model="searchQuery" @input="searchCorsi">
+                    </form>
+                </div>
+            </div>
+        </nav>
+    </header><br><br>
+
+    <!-- LOGIN -->
+    <div v-if="alertMessage !== ''" class="alert alert-danger alert-dismissible fade show" role="alert" style="text-align: center">
+        {{ alertMessage }}
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span v-on:click="hideMessage">&times;</span>
+        </button>
+    </div>
+    <div v-if="ruolo === ''" id="login">
+        <form class="form-signin">
+            <div class="text-center mb-4 text-white">
+                <h1 class="h3 mb-3 font-weight-normal">Accedi</h1>
+            </div>
+
+            <div class="form-label-group">
+                <input v-model="account" type="text" id="username" class="form-control" placeholder="Username" required
+                       autofocus>
+                <label for="username">Username</label>
+            </div>
+
+            <div class="form-label-group">
+                <input v-model="password" type="password" id="inputPassword" class="form-control" placeholder="Password"
+                       required>
+                <label for="inputPassword">Password</label>
+            </div>
+            <div class="checkbox text-white text-right">
+                <a class="nav-link" href="#" type="submit">Hai dimenticato la Password?</a>
+            </div>
+
+            <a class="btn btn-lg btn-primary btn-block" v-on:click="getLogin" type="submit">Accedi</a>
+            <div class="checkbox mb-3 text-white ">
+                <label>
+                    Non hai ancora un'account?
+                </label>
+                <label>
+                    <a class="nav-link" href="#" type="submit">Iscriviti</a>
+                </label>
+                <label>
+                    <a class="nav-link" href="#" type="submit" v-on:click="getLoginGuest" >Login as GUEST</a>
+                </label>
+            </div><br>
+
+        </form>
+    </div><br><br>
+
+    <!-- HOMEPAGE -->
+    <main role="main">
+        <div v-if="operazionePagina === 'homepage'" class="album py-5 bg-#777">
+            <div class="container bg-#777">
+                <div class="row">
+                    <div class="col-md-4" v-for="corso in corsiVisualizzati" :key="corso.id">
+                        <div class="card mb-4 shadow-sm">
+                            <svg class="bd-placeholder-img card-img-top" width="100%" height="225"
+                                 xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice"
+                                 focusable="false" role="img" aria-label="Placeholder: Nome corso">
+                                <title>{{ corso.nome }}</title>
+                                <rect width="100%" height="100%" fill="#55595c"/>
+                                <text x="50%" y="50%" fill="#eceeef" dy=".3em" text-anchor="middle">{{ corso.nome }}</text>
+                            </svg>
+                            <div class="card-body">
+                                <p class="card-text" style="min-height: 80px">
+                                    {{ corso.descrizione.length > 100 ? corso.descrizione.slice(0, 100) + '...' : corso.descrizione
+                                    }}</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="btn-group" v-if="ruolo !== 'GUEST'">
+                                        <a v-bind:class="{ 'btn-secondary': corso.docentiNum === 0, 'btn-outline-primary': corso.docentiNum > 0 }"
+                                           v-bind:disabled="corso.docentiNum === 0"
+                                           v-on:click="ruolo !== 'GUEST' ?  selezionaCorso(corso.id) : null"
+                                           class="btn btn-sm">Prenota
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PRENOTARE UN CORSO -->
+        <h1 v-if="operazionePagina === 'prenota'" style="color: white">{{ dataCorso[0].nome }}</h1>
+        <p v-if="operazionePagina === 'prenota'" style="color: white">{{ dataCorso[0].descrizione }}</p>
+        <div v-if="operazionePagina === 'prenota'" class="album py-5 bg-#777">
+            <div class="container bg-#777">
+                <div class="row">
+                    <div class="col-md-4" v-for="docenti in professori" :key="docenti.id">
+                        <div class="card mb-4 shadow-sm">
+                            <svg class="bd-placeholder-img card-img-top" width="100%" height="225"
+                                 xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice"
+                                 focusable="false" role="img" aria-label="Placeholder: Nome Docente">
+                                <title>{{ docenti.nome }} {{ docenti.cognome }}</title>
+                                <rect width="100%" height="100%" fill="#55595c"/>
+                                <text x="50%" y="50%" fill="#eceeef" dy=".3em" text-anchor="middle"
+                                      dominant-baseline="middle">{{ docenti.nome }} {{ docenti.cognome }}
+                                </text>
+                            </svg>
+                            <div class="card-body">
+                                <input type="hidden" v-model="docenti.id"/>
+                                <!--<p class="card-text" style="min-height: 80px">{{ docenti.descrizione.length > 100 ? docenti.descrizione.slice(0, 100) + '...' : docenti.descrizione }}</p>-->
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <p>Seleziona il giorno</p>
+                                            <select class="custom-select" v-model="selectedGiorni[docenti.id]"
+                                                    :id="'giorno_' + docenti.id" @change="updateOrari(docenti.id)">
+                                                <option value="1">Lunedì</option>
+                                                <option value="2">Martedì</option>
+                                                <option value="3">Mercoledì</option>
+                                                <option value="4">Giovedì</option>
+                                                <option value="5">Venerdì</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <p>Seleziona l'orario</p>
+                                            <select class="custom-select" @change="checkParametri" v-model="selectedOrari[docenti.id]" :id="'orario_' + docenti.id">
+                                                <option v-for="(nomeOrario, valoreOrario) in orariDisponibili" :value="valoreOrario" :key="valoreOrario">{{ nomeOrario }}</option>
+                                            </select>
+
+                                        </div>
+                                        <div class="col-md-6">
+                                            <br>
+                                            <div class="btn-group">
+                                                <a class="btn btn-sm btn-outline-primary" v-on:click="selezionaProfessore(docenti.id)">Prenota</a>
+                                            </div>
+                                            </br>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PRENOTAZIONI USER -->
+        <div v-if="operazionePagina === 'userprenotazioni'" class="album py-5 bg-#777">
+            <div class="container bg-#777">
+                <div class="row">
+                    <div class="col-md-4" v-for=" prenotazioni in prenotazione" :key="prenotazioni.id">
+                        <div class="card mb-4 shadow-sm">
+                            <svg class="bd-placeholder-img card-img-top" width="100%" height="225"
+                                 xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice"
+                                 focusable="false" role="img" aria-label="Placeholder: Prenotazione">
+                                <title>{{ prenotazioni.corso.nome }}</title>
+                                <rect width="100%" height="100%" fill="#55595c"/>
+                                <text x="50%" y="50%" fill="#eceeef" dy=".3em" text-anchor="middle">{{ prenotazioni.corso.nome }}</text>
+                            </svg>
+                            <div class="card-body">
+                                <input type="hidden" v-model="prenotazioni.id"/>
+                                <p class="card-text" style="min-height: 80px">
+                                    Docente: {{ prenotazioni.docente.nome }} {{ prenotazioni.docente.cognome }};
+                                    <br> Giorno: {{getNomeGiorno(prenotazioni.giorno)}};
+                                    <br> Orario: {{getNomeOrario(prenotazioni.orario)}};<br>
+                                </p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="row">
+                                        <div class="btn-group">
+                                            <a v-bind:class="{ 'btn-success': prenotazioni.stato === 2, 'btn-outline-success': prenotazioni.stato === 1 || prenotazioni.stato === 3 }"
+                                               v-on:click="confermaPrenotazione(prenotazioni.id)"
+                                               class="btn btn-sm">{{ prenotazioni.stato === 2 ? 'Effettuata' : 'Conferma'
+                                                }}</a>
+                                            <a v-bind:class="{ 'btn-danger': prenotazioni.stato === 3, 'btn-outline-danger': prenotazioni.stato === 1 || prenotazioni.stato === 2 }"
+                                               v-on:click="disdiciPrenotazione(prenotazioni.id)"
+                                               class="btn btn-sm">{{ prenotazioni.stato === 3 ? 'Disdetta' : 'Disdici'
+                                                }}</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PRENOTAZIONI ADMIN -->
+        <div v-if="operazionePagina === 'adminprenotazioni'" class="album py-5 bg-#777">
+            <div class="container bg-#777">
+                <h1 style="color: white"> Prenotazioni attive</h1><br>
+                <h3 style="color: red" v-if="prenotazione_active.length === 0">Nessuna prenotazione attiva</h3>
+                <div class="row">
+                    <div class="col-md-4" v-for=" prenotazioni in prenotazione_active" :key="prenotazioni.id">
+                        <div class="card mb-4 shadow-sm">
+                            <svg class="bd-placeholder-img card-img-top" width="100%" height="225"
+                                 xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice"
+                                 focusable="false" role="img" aria-label="Placeholder: Thumbnail">
+                                <title>{{ prenotazioni.corso.nome }}</title>
+                                <rect width="100%" height="100%" fill="#55595c"/>
+                                <text x="50%" y="50%" fill="#eceeef" dy=".3em" text-anchor="middle">{{ prenotazioni.corso.nome }}</text>
+                            </svg>
+                            <div class="card-body">
+                                <input type="hidden" v-model="prenotazioni.id"/>
+                                <p class="card-text" style="min-height: 80px">
+                                    Utente: {{prenotazioni.utente.username}};
+                                    <br>Docente: {{ prenotazioni.docente.nome}} {{ prenotazioni.docente.cognome }};
+                                    <br> Giorno: {{getNomeGiorno(prenotazioni.giorno)}};
+                                    <br> Orario: {{getNomeOrario(prenotazioni.orario)}};<br>
+                                </p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="row">
+                                        <div class="btn-group">
+                                            <a v-bind:class="{ 'btn-success': prenotazioni.stato === 2, 'btn-outline-success': prenotazioni.stato === 1 || prenotazioni.stato === 3 }"
+                                               class="btn btn-sm">{{ prenotazioni.stato === 2 ? 'Effettuata' : 'Conferma'
+                                                }}</a>
+                                            <a v-bind:class="{ 'btn-danger': prenotazioni.stato === 3, 'btn-outline-danger': prenotazioni.stato === 1 || prenotazioni.stato === 2 }"
+                                               v-on:click="disdiciPrenotazione(prenotazioni.id)"
+                                               class="btn btn-sm">{{ prenotazioni.stato === 3 ? 'Disdetta' : 'Disdici'
+                                                }}</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <br>
+                <br>
+                <h1 style="color: white">Prenotazioni scadute</h1><br>
+                <h3 style="color: red" v-if="prenotazione_expired.length === 0">Nessuna prenotazione scaduta</h3>
+                <div class="row">
+                    <div class="col-md-4" v-for=" prenotazioni in prenotazione_expired" :key="prenotazioni.id">
+                        <div class="card mb-4 shadow-sm">
+                            <svg class="bd-placeholder-img card-img-top" width="100%" height="225"
+                                 xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice"
+                                 focusable="false" role="img" aria-label="Placeholder: Prenotazione">
+                                <title>{{ prenotazioni.corso.nome }}</title>
+                                <rect width="100%" height="100%" fill="#55595c"/>
+                                <text x="50%" y="50%" fill="#eceeef" dy=".3em" text-anchor="middle">{{ prenotazioni.corso.nome }}</text>
+                            </svg>
+                            <div class="card-body">
+                                <input type="hidden" v-model="prenotazioni.id"/>
+                                <p class="card-text" style="min-height: 80px">
+                                    Utente: {{prenotazioni.utente.username}};
+                                    <br>Docente: {{ prenotazioni.docente.nome}} {{ prenotazioni.docente.cognome }};
+                                    <br> Giorno: {{getNomeGiorno(prenotazioni.giorno)}};
+                                    <br> Orario: {{getNomeOrario(prenotazioni.orario)}};<br>
+                                </p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="row">
+                                        <div class="btn-group">
+                                            <a v-if="prenotazioni.stato === 2" class="btn btn-success btn-sm">Effettuata</a>
+                                            <a v-if="prenotazioni.stato === 3" class="btn btn-danger btn-sm">Disdetta</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- INSERIMENTO/CANCELLAZIONE CORSO -->
+        <div v-if="operazionePagina === 'admincorso'">
+            <div class="row mb-1">
+            <button type="button" class="btn btn-primary btn-sm ml-3 mr-1" data-toggle="modal" data-target="#createModal">New Corso</button>
+            <button type="button" class="btn btn-primary btn-sm mr-1" data-toggle="modal" data-target="#insegnamentoModal">Remove Insegnamento</button>
+            <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#addInsegnamentoModal">Add Insegnamento</button>
+            </div>
+            <table class="table table-bordered table-dark">
+                <thead>
+                <tr >
+                    <th scope="col">Nome</th>
+                    <th scope="col">Descrizione</th>
+                    <th scope="col">Action</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr class="table-success" v-for="corso in corsi" :key="corso.id">
+                    <td style="color: black">{{corso.nome}}</td>
+                    <td style="color: black">{{corso.descrizione}}</td>
+                    <td>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#editModal" @click="openEditModal(corso)">
+                                Edit
+                            </button>
+                            <a class="btn btn-danger btn-sm"@click="deleteCorso(corso.id)">Remove</a>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="table-danger" v-for="corso in corsi_expired" :key="corso.id">
+                    <td style="color: black">{{corso.nome}}</td>
+                    <td style="color: black">{{corso.descrizione}}</td>
+                    <td>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#editModal" @click="openEditModal(corso)">
+                                Edit
+                            </button>
+                            <a class="btn btn-danger btn-sm">Removed</a>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- INSERIMENTO/CANCELLAZIONE DOCENTI -->
+        <div v-if="operazionePagina === 'admindocente'">
+            <button type="button" class="btn btn-primary btn-sm mb-1" data-toggle="modal" data-target="#createProfessore">New Docente</button>
+            <table class="table table-bordered table-dark">
+                <thead>
+                <tr >
+                    <th scope="col">Nome</th>
+                    <th scope="col">Cognome</th>
+                    <th scope="col">Action</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr class="table-success" v-for="docente in professori" :key="docente.id">
+                    <td style="color: black">{{docente.nome}}</td>
+                    <td style="color: black">{{docente.cognome}}</td>
+                    <td class="col-1">
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#editProfessore" @click="openEditProfessore(docente)">
+                                Edit
+                            </button>
+                            <a class="btn btn-danger btn-sm" v-on:click="deleteProfessore(docente.id)">Remove</a>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="table-danger" v-for="docente in professori_expired" :key="docente.id">
+                    <td style="color: black">{{docente.nome}}</td>
+                    <td style="color: black">{{docente.cognome}}</td>
+                    <td>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#editProfessore" @click="openEditProfessore(docente)">
+                                Edit
+                            </button>
+                            <a class="btn btn-danger btn-sm">Remove</a>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- MODAL OPERAZIONI -->
+        <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <form>
+                            <div class="form-group">
+                                <label class="col-form-label">Nome:</label>
+                                <input type="text" class="form-control" v-model="editcorso.nome">
+                            </div>
+                            <div class="form-group">
+                                <label class="col-form-label">Descrizione:</label>
+                                <textarea type="text" class="form-control" v-model="editcorso.descrizione"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label class="col-form-label">Stato:</label>
+                                <select class="custom-select" v-model="editcorso.stato">
+                                    <option value="1">Attivo</option>
+                                    <option value="0">Non Attivo</option>
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" data-dismiss="modal" v-on:click="editCorso">Save changes</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="editProfessore" tabindex="-1" aria-labelledby="editProfessoreModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <form>
+                            <div class="form-group">
+                                <label class="col-form-label">Nome:</label>
+                                <input type="text" class="form-control" v-model="editprofessore.nome">
+                            </div>
+                            <div class="form-group">
+                                <label class="col-form-label">Descrizione:</label>
+                                <input type="text" class="form-control" v-model="editprofessore.cognome">
+                            </div>
+                            <div class="form-group">
+                                <label class="col-form-label">Stato:</label>
+                                <select class="custom-select" v-model="editprofessore.stato">
+                                    <option value="1">Attivo</option>
+                                    <option value="0">Non Attivo</option>
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" data-dismiss="modal" v-on:click="editProfessore">Save changes</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="insegnamentoModal" tabindex="-1" aria-labelledby="insegnamentoModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <form>
+                            <div class="form-group">
+                                <label class="col-form-label">Corso:</label>
+                                <select class="custom-select" v-model="selectedCorso" @change="getDocentiInsegnamento(selectedCorso)">
+                                    <option v-for="corso in corsi" :key="corso.id" :value="corso.id">{{corso.nome}}</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="col-form-label">Docente:</label>
+                                <select class="custom-select" v-model="selectedProfessore">
+                                    <option v-for="docente in professori" :key="docente.id" :value="docente.id">{{docente.nome}} {{docente.cognome}}</option>
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" data-dismiss="modal" v-on:click="deleteInsegnamento">Delete</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="addInsegnamentoModal" tabindex="-1" aria-labelledby="addInsegnamentoModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <form>
+                            <div class="form-group">
+                                <label class="col-form-label">Corso:</label>
+                                <select class="custom-select" v-model="selectedCorso" @change="getAllDocenti">
+                                    <option v-for="corso in corsi" :key="corso.id" :value="corso.id">{{corso.nome}}</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="col-form-label">Docente:</label>
+                                <select class="custom-select" v-model="selectedProfessore">
+                                    <option v-for="docente in professori" :key="docente.id" :value="docente.id">{{docente.nome}} {{docente.cognome}}</option>
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" data-dismiss="modal" v-on:click="addInsegnamento">Add</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="modal fade" id="createModal" tabindex="-1" aria-labelledby="createModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <form>
+                            <div class="form-group">
+                                <label class="col-form-label">Corso:</label>
+                                <input type="text" class="form-control" v-model="newNome">
+                            </div>
+                            <div class="form-group">
+                                <label class="col-form-label">Descrizione:</label>
+                                <input type="text" class="form-control" v-model="newDescrizione">
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" data-dismiss="modal" v-on:click="createCorso">Create</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="createProfessore" tabindex="-1" aria-labelledby="createProfessoreLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <form>
+                            <div class="form-group">
+                                <label class="col-form-label">Nome:</label>
+                                <input type="text" class="form-control" v-model="newNome">
+                            </div>
+                            <div class="form-group">
+                                <label class="col-form-label">Cognome:</label>
+                                <input type="text" class="form-control" v-model="newCognome">
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" data-dismiss="modal" v-on:click="createProfessore">Create</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+<script>
+    var app = new Vue({
+        el: '#app',
+        data: {
+            sessione: '',
+            altreInfo: '---',
+            alertMessage: '',
+            account: '',
+            password: '',
+            ruolo: '',
+            operazionePagina: '',
+            corsi: [],
+            professori: [],
+            orario: [],
+            idCorso: '',
+            dataCorso: [],
+            editcorso: {
+                nome: '',
+                descrizione: '',
+                id: '',
+                stato: '',
+            },
+            editprofessore: {
+                nome: '',
+                cognome: '',
+                id: '',
+                stato: '',
+            },
+            selectedCorso: '',
+            newNome: '',
+            newDescrizione: '',
+            newCognome: '',
+            selectedPrenotazione: '',
+            selectedProfessore: '',
+            prenotazione: [],
+            prenotazione_expired: [],
+            prenotazione_active: [],
+            corsi_expired: [],
+            professori_expired: [],
+            selectedGiorni: {},
+            selectedOrari: {},
+            orariVisibili: {},
+            orariDisponibili: {
+                1: '15-16',
+                2: '16-17',
+                3: '17-18',
+                4: '18-19',
+            },
+            searchQuery: '',
+
+            link: '/Servlet_war_exploded/login/api',
+            link_login: '/Servlet_war_exploded/login/api',
+            link_corsi: '/Servlet_war_exploded/corso/api',
+            link_prenotazioni: '/Servlet_war_exploded/prenotazione/api',
+            link_docente: '/Servlet_war_exploded/docente/api',
+            link_orari: '/Servlet_war_exploded/orari/api',
+            link_prenotazioni_admin: '/Servlet_war_exploded/admin/prenotazione/api',
+            link_corsi_admin: '/Servlet_war_exploded/admin/corso/api',
+            link_docente_admin: '/Servlet_war_exploded/admin/docente/api',
+            link_corsodocente_admin: '/Servlet_war_exploded/admin/corsodocente/api',
+            link_docentecorso_admin: '/Servlet_war_exploded/admin/docentecorso/api',
+        },
+        mounted() {
+            window.addEventListener('popstate', (event) => {
+                if (event.state) {
+                    this.operazionePagina = event.state.pagina;
+                }
+            });
+            this.checkLogin();
+        },
+        methods: {
+
+            checkLogin(){
+                var self = this;
+                if(self.sessione === '') {
+                    $.post(this.link, {},
+                        function (data) {
+                            if (data['success']) {
+                                self.sessione = data["success"];
+                                self.ruolo = data.utente.ruolo;
+                                self.account = data["utente"];
+                                self.operazionePagina = "homepage";
+                                self.getCorsi();
+                                console.log(self.ruolo);
+                            }
+                        });
+                } else {
+                    null;
+                }
+            },
+
+            openEditModal(corso) {
+                this.editcorso = { ...corso };
+            },
+
+            openEditProfessore(docente) {
+                this.editprofessore = { ...docente };
+            },
+
+            hideMessage: function(){
+                self = this;
+                self.alertMessage = '';
+                console.log(self.alertMessage);
+            },
+
+            cambiaPagina: function (pagina) {
+                this.operazionePagina = pagina;
+                history.pushState({ pagina}, null, `#${pagina}`);
+                if (pagina === 'homepage') {
+                    this.getCorsi();
+                    this.searchQuery = '';
+                    console.log(pagina);
+                } else if (pagina === 'prenota') {
+                    this.getDocenti();
+                    this.getCorsoData();
+                    this.selectedOrari[this.selectedProfessore] = '';
+                    this.selectedGiorni[this.selectedProfessore] = '';
+                    console.log(pagina);
+                } else if (pagina === 'userprenotazioni') {
+                    this.getPrenotazioni();
+                    console.log(pagina);
+                } else if (pagina === 'adminprenotazioni') {
+                    this.getPrenotazioniActive();
+                    this.getPrenotazioniExpired();
+                    console.log(pagina);
+                } else if(pagina === 'admincorso'){
+                    this.getCorsiActive();
+                    this.getCorsiExpired();
+                    console.log(pagina);
+                } else if(pagina === 'admindocente'){
+                    this.getAllDocenti();
+                    this.getProfessoriExpired();
+                }
+            },
+
+            cambiaPrenotazioni: function () {
+                if (this.ruolo === 'ADMIN') {
+                    this.cambiaPagina('adminprenotazioni');
+                } else if (this.ruolo === 'CLIENT') {
+                    this.cambiaPagina('userprenotazioni');
+                }
+            },
+
+            getSession: function () {
+                var self = this;
+                if (self.sessione === '')
+                    $.post(this.link, {action: 'sessione'},
+                        function (data) {
+                            self.sessione = data;
+                        });
+            },
+
+            getLogin: function () {
+                var self = this;
+                if (this.account !== '' && this.password !== '') {
+                    $.post(this.link, { username: this.account, password: this.password, action: 'login' })
+                        .done(function (data) {
+                            self.altreInfo = data;
+                            if (data['success']) {
+                                self.sessione = data["success"];
+                                self.ruolo = data.utente.ruolo;
+                                self.account = data["utente"];
+                                self.operazionePagina = "homepage";
+                                self.getCorsi();
+                                console.log(self.ruolo);
+                            }
+                        })
+                        .fail(function (xhr) {
+                            if (xhr.status === 451 || xhr.status === 452 || xhr.status === 453) {
+                                self.alertMessage = "Username e/o password errati";
+                                console.log(self.alertMessage);
+                            } else {
+                                self.alertMessage = "C'è stato un'errore durante la tua richiesta";
+                            }
+                        });
+                } else {
+                    self.alertMessage= "Assicurati di riempire entrambi i campi!";
+                }
+            },
+
+            getLoginGuest: function () {
+                var self = this;
+                $.post(this.link, { action: 'login-guest' })
+                    .done(function (data) {
+                        self.altreInfo = data;
+                        if (data['success']) {
+                            self.sessione = data["success"];
+                            self.ruolo = data.utente.ruolo;
+                            self.account = data["utente"];
+                            self.operazionePagina = "homepage";
+                            self.getCorsi();
+                            console.log(self.ruolo);
+                        }
+                    })
+                    .fail(function (xhr) {
+                        if (xhr.status === 451 || xhr.status === 452 || xhr.status === 453) {
+                            self.alertMessage = "Username e/o password errati";
+                            console.log(self.alertMessage);
+                        } else {
+                            self.alertMessage = "C'è stato un'errore durante la tua richiesta";
+                        }
+                    });
+            },
+
+            getLogout: function () {
+                var self = this;
+                $.post(this.link_login, {action: 'logout'},
+                    alert("Operazione avvenuta con successo!"),
+                    self.ruolo = '',
+                    self.account = '',
+                    self.password = '',
+                    self.sessione = '',
+                    self.altreInfo = '',
+                    self.operazionePagina = '',
+                );
+            },
+
+            getCorsi: function () {
+                var self = this;
+                $.post(this.link_corsi, {corso: "all"},
+                    function (data) {
+                        self.corsi = data["corsi"];
+                        self.corsiVisualizzati = data["corsi"];
+                    }
+                );
+            },
+
+            getDocenti() {
+                var self = this;
+                $.post(this.link_docente, {corso: this.idCorso},
+                    function (data) {
+                        self.professori = data["docenti"];
+                    }
+                );
+            },
+
+            getCorsoData() {
+                var self = this;
+                console.log(this.idCorso);
+                $.post(this.link_corsi, {corso: this.idCorso},
+                    function (data) {
+                        self.dataCorso = {...data["corsi"]};
+                    }
+                );
+            },
+
+            updateOrari(professoreId) {
+                this.getOrari();
+                var giorno = this.selectedGiorni[professoreId];
+                var orariDisponibili = { ...this.orari };
+                for (var orarioOccupato of this.orariOccupati) {
+                    if (orarioOccupato.startsWith(giorno)) {
+                        delete orariDisponibili[orarioOccupato];
+                    }
+                }
+                this.orario = orariDisponibili;
+            },
+
+
+            getOrari() {
+                var self = this;
+                var professoreId = this.selectedProfessore;
+                var giorno = this.selectedGiorni[professoreId];
+                $.post(this.link_orari, {docente: professoreId, giorno: giorno},
+                    function (data) {
+                        self.orario = data["orari"];
+                    }
+                );
+            },
+
+            addPrenotazione() {
+                var self = this;
+                var professoreId = this.selectedProfessore;
+                if (self.ruolo !== 'CLIENT') {
+                    self.alertMessage= "Gli amministratori non possono prenotare corsi.";
+                    self.selectedOrari[self.selectedProfessore] = '';
+                    self.selectedGiorni[self.selectedProfessore] = '';
+                } else {
+                    $.post(this.link_prenotazioni, {
+                        corso: this.idCorso,
+                        docente: this.selectedProfessore,
+                        orario: this.selectedOrari[this.selectedProfessore],
+                        giorno: this.selectedGiorni[this.selectedProfessore],
+                        action: 'add',
+                    }, function (data) {
+                        if (data.success) {
+                            alert("Prenotazione effettuata con successo!");
+                            self.selectedOrari[self.selectedProfessore] = '';
+                            self.selectedGiorni[self.selectedProfessore] = '';
+                        }
+                    }).fail(function(xhr){
+                        if (xhr.status === 460){
+                            self.alertMessage = "Non puoi prenotare due volte lo stesso corso.";
+                        } else if(xhr.status === 461){
+                            self.alertMessage = "Hai già una prenotazione in questo slot orario.";
+                        } else if(xhr.status === 459){
+                            self.alertMessage = "Questo slot è stato prenotato da un'altro utente.";
+                        } else if(xhr.status === 462 || xhr.status === 463) {
+                            self.alertMessage= "Devi scegliere giorno e ora per prenotare.";
+                        }
+                    });
+                }
+            },
+
+            selezionaProfessore(professoreId) {
+                this.selectedProfessore = professoreId;
+                this.addPrenotazione();
+            },
+
+            checkParametri() {
+                var professoreId = this.selectedProfessore;
+                console.log(this.selectedProfessore);
+                console.log(this.selectedGiorni[professoreId]);
+                console.log(this.selectedOrari[professoreId])
+            },
+
+            getPrenotazioni() {
+                var self = this;
+                $.post(this.link_prenotazioni, {action: 'get',},
+                    function (data) {
+                        self.prenotazione = data["prenotazioni"]
+                    }
+                );
+            },
+
+            confermaPrenotazione(idPrenotazione) {
+                var self = this;
+                self.selectedPrenotazione = idPrenotazione;
+                $.post(this.link_prenotazioni, {id: this.selectedPrenotazione, stato: 2, action: 'update'},
+                    function (data) {
+                        if (data.success) {
+                            alert("Operazione effettuata con successo!");
+                            self.getPrenotazioniExpired();
+                            self.getPrenotazioni();
+                            self.getPrenotazioniActive();
+                        }
+                    }
+                );
+            },
+
+            disdiciPrenotazione(idPrenotazione) {
+                var self = this;
+                self.selectedPrenotazione = idPrenotazione;
+                $.post(this.link_prenotazioni, {id: this.selectedPrenotazione, stato: 3, action: 'update'},
+                    function (data) {
+                        if (data.success) {
+                            alert("Prenotazione disdetta con successo!");
+                            self.getPrenotazioniExpired();
+                            self.getPrenotazioni();
+                            self.getPrenotazioniActive();
+                        }
+                    }
+                );
+            },
+
+            getNomeGiorno(numeroGiorno) {
+                const giorniSettimana = ['Giorno non valido', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Giorno non valido'];
+                // Assicurati che il numeroGiorno sia nell'intervallo corretto
+                if (numeroGiorno >= 1 && numeroGiorno <= 7) {
+                    return giorniSettimana[numeroGiorno];
+                } else {
+                    return 'Giorno non valido';
+                }
+            },
+
+            getNomeOrario(numeroOrario) {
+                const intervallo = ['Orario non valido', '15-16', '16-17', '17-18', '18-19'];
+                if (numeroOrario >= 1 && numeroOrario <= 4) {
+                    return intervallo[numeroOrario];
+                } else {
+                    return 'Orario non valido';
+                }
+            },
+
+            selezionaCorso(corsoId) {
+                this.idCorso = corsoId;
+                this.cambiaPagina('prenota');
+            },
+
+            getPrenotazioniActive() {
+                var self = this;
+                $.post(this.link_prenotazioni_admin, {},
+                    function (data) {
+                        self.prenotazione_active = data["prenotazioni"]
+                    }
+                );
+            },
+
+            getPrenotazioniExpired() {
+                console.log("prenotazioni expired");
+                var self = this;
+                $.post(this.link_prenotazioni_admin, {active: 0},
+                    function (data) {
+                        self.prenotazione_expired = data["prenotazioni"];
+                        console.log("prenotazioni");
+                    }
+                );
+            },
+
+            getCorsiActive(){
+                var self = this;
+                $.post(this.link_corsi_admin, {action: 'read', active: 1},
+                    function (data) {
+                        self.corsi = data["corsi"];
+                    }
+                );
+            },
+
+            getCorsiExpired(){
+                var self = this;
+                $.post(this.link_corsi_admin, {action:'read', active: 0},
+                    function (data) {
+                        self.corsi_expired = data["corsi"];
+                    }
+                );
+            },
+
+            editCorso(){
+                var self = this;
+                console.log(self.editcorso.id);
+                $.post(this.link_corsi_admin, {action: 'update',
+                        corso: this.editcorso.id,
+                        nome: this.editcorso.nome,
+                        descrizione: this.editcorso.descrizione,
+                        active: this.editcorso.stato},
+                    function (data) {
+                        self.corsi = data["corsi"];
+                        self.getCorsiActive();
+                        self.getCorsiExpired();
+                    }
+                );
+            },
+
+            deleteCorso(idCorso){
+                var self = this;
+                console.log(idCorso);
+                $.post(this.link_corsi_admin, {action: 'delete', corso: idCorso},
+                    function (data) {
+                        self.corsi = data["corsi"];
+                        self.getCorsiActive();
+                        self.getCorsiExpired();
+                    }
+                );
+            },
+
+            createCorso(){
+                var self = this;
+                $.post(this.link_corsi_admin, {action: 'create', nome: this.newNome, descrizione: this.newDescrizione},
+                    function (data) {
+                        self.corsi = data["corsi"];
+                        alert("Operazione avvenuta con successo.");
+                        self.newNome = '';
+                        self.newDescrizione = '';
+                        self.getCorsiActive();
+                        self.getCorsiExpired();
+                    }
+                );
+            },
+
+            getDocentiInsegnamento(idCorso){
+                var self = this;
+                $.post(this.link_corsodocente_admin, {action: 'get', corso: idCorso},
+                    function (data) {
+                        self.professori = data["docenti"];
+                    }
+                );
+            },
+
+            deleteInsegnamento(){
+                var self = this;
+                $.post(this.link_corsodocente_admin, {action: 'delete', corso: this.selectedCorso, docente: this.selectedProfessore},
+                    function (data) {
+                        if(data.success){
+                            alert("Operazione effettuata con successo.");
+                            self.selectedCorso = '';
+                            self.selectedProfessore = '';
+                            this.getDocentiInsegnamento();
+                        }
+                    }
+                );
+            },
+
+            addInsegnamento(){
+                var self = this;
+                $.post(this.link_corsodocente_admin, {action: 'set', corso: this.selectedCorso, docente: this.selectedProfessore},
+                    function (data) {
+                        if(data.success){
+                            alert("Operazione effettuata con successo.");
+                            self.selectedCorso = '';
+                            self.selectedProfessore = '';
+                            this.getDocentiInsegnamento();
+                        }
+                    }
+                );
+            },
+
+            getAllDocenti(){
+                var self = this;
+                $.post(this.link_docente_admin, {action: 'read'},
+                    function (data) {
+                        self.professori = data["docenti"];
+                    }
+                );
+            },
+
+            getProfessoriExpired(){
+                var self = this;
+                $.post(this.link_docente_admin, {action:'read', active: 0},
+                    function (data) {
+                        self.professori_expired = data["docenti"];
+                    }
+                );
+            },
+
+            editProfessore(){
+                var self = this;
+                console.log(self.editprofessore.id);
+                $.post(this.link_docente_admin, {action: 'update',
+                        docente: this.editprofessore.id,
+                        nome: this.editprofessore.nome,
+                        cognome: this.editprofessore.cognome,
+                        active: this.editprofessore.stato},
+                    function (data) {
+                        self.professori = data["docenti"];
+                        self.getAllDocenti();
+                        self.getProfessoriExpired()
+                    }
+                );
+            },
+
+            deleteProfessore(idProfessore){
+                var self = this;
+                console.log(idProfessore);
+                $.post(this.link_docente_admin, {action: 'delete', docente: idProfessore},
+                    function (data) {
+                        self.professori = data["docenti"];
+                        self.getAllDocenti();
+                        self.getProfessoriExpired();
+                    }
+                );
+            },
+
+            createProfessore(){
+                var self = this;
+                $.post(this.link_docente_admin, {action: 'create', nome: this.newNome, cognome: this.newCognome},
+                    function (data) {
+                        self.professori = data["docenti"];
+                        alert("Operazione avvenuta con successo.");
+                        self.newNome = '';
+                        self.newCognome = '';
+                        self.getAllDocenti();
+                    }
+                );
+            },
+
+            searchCorsi() {
+                const filteredCorsi = this.corsi.filter(corso =>
+                    corso.nome.toLowerCase().includes(this.searchQuery.toLowerCase())
+                );
+                this.corsiVisualizzati = filteredCorsi;
+            },
+
+        }
+    });
+</script>
+</body>
+</html>
