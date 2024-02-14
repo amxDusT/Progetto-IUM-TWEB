@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Prova sessioni utente con Vue.js</title>
+</head>
+<body>
+<!-- development version, includes helpful console warnings -->
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+<h1> Prova POST con sessione utente </h1>
+<div id="app">
+    <p> Login: <input v-model="account" type="text"> </p>
+    <p> Password: <input v-model="password" type="password"></p>
+    <button v-on:click="getInfo">OK</button>
+    <p>JSessionID: {{ sessione }}</p>
+    <p>Controllo sessione: {{ altreInfo }}</p>
+</div>
+
+<script>
+    var app = new Vue ({
+        el: '#app',
+        data: {
+            sessione:'',
+            altreInfo:'---',
+            account:  'guest',
+            password: '',
+            link :    '/ServizioRipetizioniWeb_war_exploded/check-login'
+        },
+        mounted(){ this.getSession() },
+        methods:{
+            getSession: function(){
+                var self = this;
+                if(self.sessione==='')
+                    $.post(this.link, {action: 'sessione'},
+                        function (data){
+                            self.sessione = data;
+                        });
+            },
+            getInfo:function(){
+                var self = this;
+                $.post(this.link, {username: this.account, password: this.password, sessione: this.sessione, action: 'login'},
+                    function (data) {
+                        self.altreInfo = data;
+                    });
+            }
+        }
+    });
+</script>
+</body>
+</html>
