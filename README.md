@@ -1,3 +1,6 @@
+Backend, Flutter, Python: Kevin Kolaveri
+Web/Vue.js: Maurizio Capicchiano 
+
 
 Si sviluppi un’applicazione java web che gestisca prenotazioni di ripetizioni online
 essendo dotata sia di interfaccia utente per browser web che per accesso mobile.
