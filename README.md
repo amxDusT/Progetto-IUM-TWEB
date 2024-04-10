@@ -1,4 +1,4 @@
-Backend, Flutter, Python: Kevin Kolaveri
+Backend, Flutter, Python: Kevin Kolaveri  
 Web/Vue.js: Maurizio Capicchiano 
 
 
